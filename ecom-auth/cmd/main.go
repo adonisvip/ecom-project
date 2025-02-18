@@ -13,8 +13,10 @@ import (
 )
 
 func main() {
-	redis.InitConnection(config.Redis)
-	postgres.PostgresInitConnection(config.Postgres)
+  var cfg *config.AppConfig
+  
+	redis.InitConnection(cfg.RedisConfig)
+	postgres.PostgresInitConnection(cfg.PostgresConfig)
 
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {

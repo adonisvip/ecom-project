@@ -1,7 +1,9 @@
 package config
 
-type Config struct {
+type AppConfig struct {
   ServerPort        string    `env:"SERVER_PORT`
+  RedisConfig       []Redis
+  PostgresConfig    []Postgres
 }
 
 type Redis struct {
@@ -19,5 +21,3 @@ type Postgres struct {
 	PostgresPort     string       `env:"POSTGRES_PORT"`
 	PostgresDatabase string       `env:"POSTGRES_DATABASE"`
 }
-
-var config Config
