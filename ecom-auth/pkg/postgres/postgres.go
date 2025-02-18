@@ -8,6 +8,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var DB *sql.DB
+
 func PostgresInitConnection(cfg *cfg.Postgres) (*gorm.DB, *sql.DB, error) {
 	psqlInfo := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", cfg.PostgresUser, cfg.PostgresPassword, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase)
 	db, err := gorm.Open(postgres.Open(psqlInfo), &gorm.Config{})
