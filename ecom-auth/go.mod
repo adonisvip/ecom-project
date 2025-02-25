@@ -7,6 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.25.0
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/sethvargo/go-envconfig v1.1.1
 	golang.org/x/crypto v0.32.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5

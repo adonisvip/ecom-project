@@ -14,7 +14,8 @@ func InitConnection(cfg *config.Redis) *redis.Client {
 		PoolSize:     cfg.PoolSize,
 		PoolTimeout:  time.Duration(cfg.PoolTimeout) * time.Second,
 		Password:     cfg.Password,
-		DB:           cfg.DB,  
+		DB:           cfg.DB,
+    
 	})
   	// Test connection with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

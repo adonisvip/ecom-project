@@ -5,6 +5,7 @@ import (
 
 	pb "ecom-auth/proto/auth"
   "ecom-auth/handlers"
+  "ecom-auth/repository"
 )
 
 type AuthServer struct {
@@ -24,4 +25,12 @@ func (s *AuthServer) Login(ctx context.Context, req *pb.LoginRequest) (*pb.Login
 func (s *AuthServer) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {
 	valid := handlers.ValidateJWT(req.Token)
 	return &pb.ValidateTokenResponse{Valid: valid}, nil
+}
+
+func (s *AuthServer) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
+	err := repository.CreateUser(req.Username, req.Password)
+	if err != nil {
+		return &pb.RegisterResponse{Message: "Failed to create user"}, err
+	}
+	return &pb.RegisterResponse{Message: "User created successfully"}, nil
 }

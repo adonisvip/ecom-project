@@ -1,9 +1,9 @@
 package config
 
-type AppConfig struct {
-  ServerPort        string    `env:"SERVER_PORT`
-  RedisConfig       []Redis
-  PostgresConfig    []Postgres
+type Config struct {
+  // ServerPort        string    `env:"SERVER_PORT`
+  Redis             *Redis        
+  Postgres          *Postgres      
 }
 
 type Redis struct {
@@ -21,3 +21,21 @@ type Postgres struct {
 	PostgresPort     string       `env:"POSTGRES_PORT"`
 	PostgresDatabase string       `env:"POSTGRES_DATABASE"`
 }
+
+
+// func LoadConfig(cfg interface{}) error {
+// 	v := reflect.ValueOf(cfg).Elem()
+
+// 	for i := 0; i < v.NumField(); i++ {
+// 		field := v.Field(i)
+
+// 		// Chỉ xử lý nếu là struct
+// 		if field.Kind() == reflect.Struct {
+// 			fieldAddr := field.Addr().Interface()
+// 			if err := envconfig.Process("", fieldAddr); err != nil {
+// 				return fmt.Errorf("failed to process field %s: %w", v.Type().Field(i).Name, err)
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }

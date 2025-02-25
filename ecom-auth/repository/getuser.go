@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	db "ecom-auth/pkg/postgres"
-	// "ecom-auth/pkg/utils"
+	"ecom-auth/pkg/utils"
 )
 
 type User struct {
@@ -26,4 +26,15 @@ func GetUserByUsername(username string) (*User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func CreateUser(username, password string) error {
+	hashedPassword, err := utils.HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	query := "INSERT INTO users (username, password) VALUES ($1, $2)"
+	_, err = db.DB.Exec(query, username, hashedPassword)
+	return err
 }
