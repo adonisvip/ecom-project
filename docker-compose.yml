@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecom-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecom_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/postgres_data:/var/lib/postgresql/data
+    networks:
+      - ecom-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ecom-redis
+    ports:
+      - "6379:6379"
+    volumes:
+     - ./database/redis_data:/data
+    networks:
+      - ecom-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # Auth Service (gRPC)
+  ecom-auth:
+    build:
+      context: ./ecom-auth
+      dockerfile: Dockerfile
+    container_name: ecom-auth
+    environment:
+      # Redis Configuration
+      REDIS_CONNECTION_URL: redis:6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      REDIS_POOL_SIZE: 10
+      REDIS_POOL_TIMEOUT: 5
+      # PostgreSQL Configuration
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: ecom_db
+    ports:
+      - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ecom-network
+    restart: unless-stopped
+
+  # Gateway Service (HTTP)
+  ecom-gateway:
+    build:
+      context: ./ecom-gateway
+      dockerfile: Dockerfile
+    container_name: ecom-gateway
+    environment:
+      # Server Configuration
+      LOG_LEVEL: info
+      ENVIRONMENT: development
+      SERVICE_NAME: ecom-gateway
+      SERVICE_VERSION: 1.0.0
+      BASE_URL: http://localhost:8080
+      HTTP_PORT: 8080
+      # Redis Configuration
+      REDIS_CONNECTION_URL: redis:6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      REDIS_POOL_SIZE: 10
+      REDIS_POOL_TIMEOUT: 5
+      # gRPC Service Configuration
+      AUTH_SERVICE_GRPC: ecom-auth:50051
+      CORE_SERVICE_GRPC: ""
+    ports:
+      - "8080:8080"
+    depends_on:
+      ecom-auth:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - ecom-network
+    restart: unless-stopped
+
+networks:
+  ecom-network:
+    driver: bridge
+
+
