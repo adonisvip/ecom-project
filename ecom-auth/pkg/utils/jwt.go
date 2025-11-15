@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"log"
+	"errors"
 	"os"
 	"time"
 
@@ -17,30 +17,21 @@ type SignedDetails struct {
 
 var SECRET_KEY = os.Getenv("SECRET_KEY")
 
-func TokenGenerator(email string, username string, fullname string) (signedtoken string, signedrefreshtoken string, err error) {
+// TokenGenerator generates access token (JWT) with 15 minutes expiration
+func TokenGenerator(email string, username string, fullname string) (signedtoken string, err error) {
 	claims := &SignedDetails{
 		Email:    email,
 		Username: username,
 		Fullname: fullname,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(24)).Unix(),
-		},
-	}
-	refreshclaims := &SignedDetails{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(168)).Unix(),
+			ExpiresAt: time.Now().Local().Add(time.Minute * 15).Unix(),
 		},
 	}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(SECRET_KEY))
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
-	refreshtoken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshclaims).SignedString([]byte(SECRET_KEY))
-	if err != nil {
-		log.Panicln(err)
-		return
-	}
-	return token, refreshtoken, err
+	return token, nil
 }
 
 func ValidateToken(signedtoken string) (claims *SignedDetails, msg string) {
@@ -65,22 +56,64 @@ func ValidateToken(signedtoken string) (claims *SignedDetails, msg string) {
 }
 
 func ParseJWT(tokenString string) (jwt.MapClaims, error) {
+	if SECRET_KEY == "" {
+		return nil, errors.New("SECRET_KEY is not set")
+	}
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return SECRET_KEY, nil
+		return []byte(SECRET_KEY), nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		return claims, nil
 	}
-	return nil, err
+	return nil, errors.New("invalid token")
 }
 
 func GenerateJWT(userID int) (string, error) {
+	if SECRET_KEY == "" {
+		return "", errors.New("SECRET_KEY is not set")
+	}
+
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(SECRET_KEY)
+	return token.SignedString([]byte(SECRET_KEY))
+}
+
+func GenerateTokenPair(userID int) (token string, refreshToken string, err error) {
+	if SECRET_KEY == "" {
+		return "", "", errors.New("SECRET_KEY is not set")
+	}
+
+	// Generate access token (24 hours)
+	tokenClaims := jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	}
+	tokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, tokenClaims)
+	token, err = tokenObj.SignedString([]byte(SECRET_KEY))
+	if err != nil {
+		return "", "", err
+	}
+
+	// Generate refresh token (7 days)
+	refreshClaims := jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(),
+	}
+	refreshTokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshToken, err = refreshTokenObj.SignedString([]byte(SECRET_KEY))
+	if err != nil {
+		return "", "", err
+	}
+
+	return token, refreshToken, nil
 }

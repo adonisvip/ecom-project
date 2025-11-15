@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"ecom-gateway/grpc"
 	pbAuth "ecom-gateway/proto/auth"
+
+	"github.com/gin-gonic/gin"
 )
 
 // AuthMiddleware kiểm tra JWT token
@@ -27,7 +28,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		res, err := grpc.AuthClient.VerifyToken(context.Background(), &pbAuth.VerifyTokenRequest{Token: token})
+		res, err := grpc.AuthClient.ValidateToken(context.Background(), &pbAuth.ValidateTokenRequest{Token: token})
 		if err != nil || !res.Valid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
@@ -36,5 +37,5 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
-  
+
 }

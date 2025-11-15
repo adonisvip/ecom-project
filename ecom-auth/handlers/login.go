@@ -1,14 +1,14 @@
 package handlers
 
 import (
-  // "ecom-auth/models"
-  "ecom-auth/pkg/utils"
-  "ecom-auth/repository"
-  "errors"
-  // "github.com/gin-gonic/gin"
-  // "log"
-  // "net/http"
-  // "fmt"
+	// "ecom-auth/models"
+	"ecom-auth/pkg/utils"
+	"ecom-auth/repository"
+	"errors"
+	// "github.com/gin-gonic/gin"
+	// "log"
+	// "net/http"
+	// "fmt"
 )
 
 // func (auth *AuthController) Login(c *gin.Context) {
@@ -41,22 +41,36 @@ import (
 // 	c.JSON(http.StatusFound, userinfor.Token)
 // }
 
-
-func AuthenticateUser(username, password string) (string, error) {
+func AuthenticateUser(username, password string) (string, string, error) {
 	user, err := repository.GetUserByUsername(username)
 	if err != nil {
-		return "", errors.New("user not found")
+		return "", "", errors.New("user not found")
 	}
 
 	if !utils.CheckPasswordHash(password, user.Password) {
-		return "", errors.New("invalid password")
+		return "", "", errors.New("invalid password")
 	}
 
-	// Tạo JWT token
-	token, err := utils.GenerateJWT(user.ID)
+	// Lấy fullname, nếu không có thì dùng empty string
+	fullname := ""
+	if user.Fullname.Valid {
+		fullname = user.Fullname.String
+	}
+
+	// Tạo access token (JWT) với thời hạn 15 phút
+	token, err := utils.TokenGenerator(user.Email, user.Username, fullname)
 	if err != nil {
-		return "", errors.New("failed to generate token")
+		return "", "", errors.New("failed to generate token")
 	}
 
-	return token, nil
+	// Tạo refresh token (UUID) với thời hạn 14 ngày (lưu trong DB)
+	refreshToken := utils.GenerateRefreshToken()
+
+	// Lưu cả access token và refresh token vào database
+	err = repository.UpdateUserTokens(user.ID, token, refreshToken)
+	if err != nil {
+		return "", "", errors.New("failed to save token to database")
+	}
+
+	return token, refreshToken, nil
 }
